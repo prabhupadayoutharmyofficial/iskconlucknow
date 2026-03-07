@@ -1,0 +1,64 @@
+{
+  "placeholderImages": [
+    {
+      "id": "temple-exterior",
+      "description": "ISKCON Lucknow temple exterior",
+      "imageUrl": "https://res.cloudinary.com/dguhsmyrh/image/upload/v1772872458/DSC_9994_ekczx0.jpg",
+      "imageHint": "temple architecture"
+    },
+    {
+      "id": "deities-darshan",
+      "description": "Srila Prabhupada",
+      "imageUrl": "https://res.cloudinary.com/dguhsmyrh/image/upload/v1772893598/SrilaPrabhupada_n5ow8n.jpg",
+      "imageHint": "Srila Prabhupada"
+    },
+    {
+      "id": "srila-prabhupada-about",
+      "description": "Srila Prabhupada portrait for About page",
+      "imageUrl": "https://res.cloudinary.com/dguhsmyrh/image/upload/v1772894976/srila-prabhupada-2_wpvgdb.jpg",
+      "imageHint": "Srila Prabhupada"
+    },
+    {
+      "id": "temple-president",
+      "description": "H.G Aparimay Shyam Das - Temple President",
+      "imageUrl": "https://res.cloudinary.com/dguhsmyrh/image/upload/v1772897995/2_u5juop.jpg",
+      "imageHint": "temple president"
+    },
+    {
+      "id": "festival-1",
+      "description": "Spiritual Festival Celebration",
+      "imageUrl": "",
+      "imageHint": "spiritual festival"
+    },
+    {
+      "id": "festival-2",
+      "description": "Temple Community Event",
+      "imageUrl": "",
+      "imageHint": "community gathering"
+    },
+    {
+      "id": "festival-celebration",
+      "description": "Janmashtami celebration at the temple",
+      "imageUrl": "",
+      "imageHint": "spiritual festival"
+    },
+    {
+      "id": "evening-arati",
+      "description": "Evening arati ceremony with lamps",
+      "imageUrl": "",
+      "imageHint": "ritual ceremony"
+    },
+    {
+      "id": "temple-gardens",
+      "description": "Serene gardens surrounding the temple",
+      "imageUrl": "",
+      "imageHint": "temple garden"
+    },
+    {
+      "id": "bhakti-center",
+      "description": "The temple's spiritual education center",
+      "imageUrl": "",
+      "imageHint": "spiritual hall"
+    }
+  ]
+}
