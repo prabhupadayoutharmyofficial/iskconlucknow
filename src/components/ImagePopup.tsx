@@ -33,7 +33,7 @@ export function ImagePopup({ imageUrl, altText, title, description }: ImagePopup
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none bg-transparent shadow-none">
+      <DialogContent className="sm:max-w-[1200px] p-0 overflow-hidden border-none bg-transparent shadow-none">
         {/* Accessibility Requirements: DialogTitle and DialogDescription are required for screen readers */}
         <DialogTitle className="sr-only">{title || "Announcement"}</DialogTitle>
         <DialogDescription className="sr-only">
@@ -50,7 +50,7 @@ export function ImagePopup({ imageUrl, altText, title, description }: ImagePopup
             <X className="h-5 w-5" />
           </Button>
           
-          <div className="relative aspect-[2/3] w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20">
+          <div className="relative aspect-[16/9] w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20">
             <Image
               src={imageUrl}
               alt={altText}

@@ -16,7 +16,7 @@ export default function Home() {
           Updated to remove visible text overlay as requested.
       */}
       <ImagePopup 
-        imageUrl="https://res.cloudinary.com/dguhsmyrh/image/upload/v1772898947/Anandam_mst7j3.jpg"
+        imageUrl="https://res.cloudinary.com/dguhsmyrh/image/upload/v1776417009/%E0%A4%A8%E0%A4%B0%E0%A5%8D%E0%A4%B8%E0%A4%BF%E0%A4%82%E0%A4%97%E0%A4%B9_%E0%A4%9A%E0%A4%A4%E0%A5%81%E0%A4%B0%E0%A5%8D%E0%A4%A6%E0%A4%B6%E0%A5%80_nii97f.jpg"
         altText="Temple Announcement"
       />
 
