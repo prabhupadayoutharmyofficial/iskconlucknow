@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import {
   Heart,
@@ -30,14 +30,125 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 export default function DonatePage() {
   const { toast } = useToast();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  const [customAmount, setCustomAmount] = useState('');
+  const [isAnyAmountModalOpen, setIsAnyAmountModalOpen] = useState(false);
+  const [selectedSevaType, setSelectedSevaType] = useState('');
+  const [anyAmountValue, setAnyAmountValue] = useState('');
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => setRazorpayLoaded(true);
+    document.body.appendChild(script);
+  }, []);
+
+  const handleDonate = (amount: string, title: string) => {
+    if (!razorpayLoaded) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Razorpay is not loaded yet. Please try again.",
+      });
+      return;
+    }
+
+    if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Razorpay key is not configured.",
+      });
+      return;
+    }
+
+    // Parse amount: remove ₹ and commas, convert to number, then to paise
+    const cleanAmount = amount.replace('₹', '').replace(/,/g, '').trim();
+    let numericAmount: number;
+    if (cleanAmount === 'Any Amount') {
+      // Open modal for any amount selection
+      setIsAnyAmountModalOpen(true);
+      setSelectedSevaType('');
+      setAnyAmountValue('');
+      return;
+    } else if (cleanAmount.includes('-')) {
+      // For ranges like 11L - 21L, use minimum
+      const min = cleanAmount.split('-')[0].replace('L', '00000').trim();
+      numericAmount = parseInt(min);
+    } else {
+      numericAmount = parseInt(cleanAmount);
+    }
+
+    if (isNaN(numericAmount) || numericAmount <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Amount",
+        description: "The donation amount is invalid.",
+      });
+      return;
+    }
+
+    const amountInPaise = numericAmount * 100;
+
+    console.log('Amount:', amount, 'Clean:', cleanAmount, 'Numeric:', numericAmount, 'Paise:', amountInPaise);
+
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: amountInPaise,
+      currency: 'INR',
+      name: 'ISKCON Lucknow',
+      description: `Donation for ${title}`,
+      image: 'https://res.cloudinary.com/dguhsmyrh/image/upload/v1772872478/iskcon_lucknow_rdmlcf.png',
+      handler: function (response: any) {
+        console.log('Payment success:', response);
+        toast({
+          title: "Payment Successful!",
+          description: `Thank you for your donation. Payment ID: ${response.razorpay_payment_id}`,
+        });
+        // Here you can send the payment details to your server for verification
+      },
+      modal: {
+        ondismiss: function() {
+          console.log('Payment modal dismissed');
+          toast({
+            title: "Payment Cancelled",
+            description: "You cancelled the payment.",
+          });
+        }
+      },
+      theme: {
+        color: '#FF6B35',
+      },
+    };
+
+    try {
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error) {
+      console.error('Razorpay error:', error);
+      toast({
+        variant: "destructive",
+        title: "Payment Failed",
+        description: "Something went wrong with the payment. Please try again.",
+      });
+    }
+  };
 
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -47,6 +158,29 @@ export default function DonatePage() {
       description: `UPI ID ${text} copied to clipboard.`,
     });
     setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleAnyAmountSubmit = () => {
+    if (!selectedSevaType) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select a donation type.",
+      });
+      return;
+    }
+
+    if (!anyAmountValue || parseInt(anyAmountValue) <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please enter a valid amount.",
+      });
+      return;
+    }
+
+    setIsAnyAmountModalOpen(false);
+    handleDonate(anyAmountValue, selectedSevaType);
   };
 
   async function handleReceiptSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -302,8 +436,11 @@ export default function DonatePage() {
                         <div className="text-accent font-bold text-xl">
                           {opt.amount}
                         </div>
-                        <Button className="w-full bg-primary text-primary-foreground font-bold hover:bg-accent rounded-full">
-                          Donate Now
+                       <Button 
+                        className="w-full bg-primary text-primary-foreground font-bold hover:bg-accent rounded-full"
+                        onClick={() => handleDonate(opt.amount, opt.title)}
+                       >
+                        Donate Now
                         </Button>
                       </div>
                     </CardContent>
@@ -314,6 +451,36 @@ export default function DonatePage() {
             <CarouselPrevious />
             <CarouselNext />
           </Carousel>
+        </div>
+
+        {/* Custom Donation Section */}
+        <div className="max-w-md mx-auto mb-16">
+          <Card className="bg-card border-border shadow-sm">
+            <CardHeader className="text-center">
+              <CardTitle className="text-xl font-headline font-bold">Custom Donation</CardTitle>
+              <p className="text-muted-foreground text-sm">Enter any amount of your choice</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="custom-amount">Amount (₹)</Label>
+                <Input
+                  id="custom-amount"
+                  type="number"
+                  placeholder="Enter amount"
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value)}
+                  min="1"
+                />
+              </div>
+              <Button
+                className="w-full bg-primary text-primary-foreground font-bold hover:bg-accent rounded-full"
+                onClick={() => handleDonate(customAmount, 'Custom Donation')}
+                disabled={!customAmount || parseInt(customAmount) <= 0}
+              >
+                Donate Now
+              </Button>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Payment Methods Section */}
@@ -533,6 +700,59 @@ export default function DonatePage() {
             </Card>
           </div>
         </div>
+
+        {/* Any Amount Donation Modal */}
+        <Dialog open={isAnyAmountModalOpen} onOpenChange={setIsAnyAmountModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-headline font-bold">Custom Donation Amount</DialogTitle>
+              <DialogDescription>
+                Select a donation type and enter your desired amount
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="seva-type" className="text-base font-semibold">Donation Type</Label>
+                <Textarea
+                  id="seva-type"
+                  placeholder="Enter the type of donation or seva"
+                  value={selectedSevaType}
+                  onChange={(e) => setSelectedSevaType(e.target.value)}
+                  className="h-20 resize-none"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="any-amount-input" className="text-base font-semibold">Enter Amount (₹)</Label>
+                <Input
+                  id="any-amount-input"
+                  type="number"
+                  placeholder="Enter your donation amount"
+                  value={anyAmountValue}
+                  onChange={(e) => setAnyAmountValue(e.target.value)}
+                  min="1"
+                  className="h-12 text-lg"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsAnyAmountModalOpen(false)}
+                  className="flex-1 h-11 rounded-lg"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleAnyAmountSubmit}
+                  className="flex-1 h-11 bg-primary text-primary-foreground font-bold hover:bg-accent rounded-lg"
+                >
+                  Donate Now
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
