@@ -105,7 +105,7 @@ export default function ContactPage() {
                 <h3 className="font-headline font-bold text-xl">Govinda Restaurant</h3>
                 <p className="text-muted-foreground text-xs leading-relaxed">
                   +91-95175-55471<br />
-                  +91-77539-83490
+                  +91-75180-22202
                 </p>
               </div>
 
