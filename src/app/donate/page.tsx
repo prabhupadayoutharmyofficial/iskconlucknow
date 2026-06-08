@@ -405,7 +405,7 @@ export default function DonatePage() {
         </div>
 
         {/* Seva Carousel */}
-        <div className="px-12 mb-32">
+        {/* <div className="px-12 mb-32">
           <Carousel
             opts={{
               align: 'start',
@@ -451,10 +451,10 @@ export default function DonatePage() {
             <CarouselPrevious />
             <CarouselNext />
           </Carousel>
-        </div>
+        </div> */}
 
         {/* Custom Donation Section */}
-        <div className="max-w-md mx-auto mb-16">
+        {/* <div className="max-w-md mx-auto mb-16">
           <Card className="bg-card border-border shadow-sm">
             <CardHeader className="text-center">
               <CardTitle className="text-xl font-headline font-bold">Custom Donation</CardTitle>
@@ -481,7 +481,7 @@ export default function DonatePage() {
               </Button>
             </CardContent>
           </Card>
-        </div>
+        </div> */}
 
         {/* Payment Methods Section */}
         <div className="max-w-6xl mx-auto">
