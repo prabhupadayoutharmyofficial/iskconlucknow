@@ -67,7 +67,7 @@ export function Footer() {
                 <div className="space-y-2">
                   <p><span className="font-bold text-foreground">TPO:</span> +91-73100-80798</p>
                   <p><span className="font-bold text-foreground">Admin:</span> +91-73555-60450, +91-96620-29320, +91-90262-96062</p>
-                  <p><span className="font-bold text-foreground">Govinda:</span> +91-95175-55471, +91-77539-83490</p>
+                  <p><span className="font-bold text-foreground">Govinda:</span> +91-95175-55471, +91-75180-22202</p>
                   <p><span className="font-bold text-foreground">Guest House:</span> +91-75180-22202</p>
                 </div>
               </li>
