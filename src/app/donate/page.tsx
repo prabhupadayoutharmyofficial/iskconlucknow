@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   Heart,
@@ -35,6 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import RecurringDonationCarousel from '@/components/RecurringDonationCarousel';
 
 declare global {
   interface Window {
@@ -43,6 +45,7 @@ declare global {
 }
 
 export default function DonatePage() {
+  const router = useRouter();
   const { toast } = useToast();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -117,6 +120,39 @@ export default function DonatePage() {
       image: 'https://res.cloudinary.com/dguhsmyrh/image/upload/v1772872478/iskcon_lucknow_rdmlcf.png',
       handler: function (response: any) {
         console.log('Payment success:', response);
+        const formattedAmount = new Intl.NumberFormat('en-IN', {
+          style: 'currency',
+          currency: 'INR',
+        }).format(amountInPaise / 100);
+
+        const dateStr = new Date().toLocaleString('en-IN', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        });
+
+        const receiptData = {
+          paymentId: response.razorpay_payment_id,
+          title,
+          amount: formattedAmount,
+          date: dateStr,
+        };
+
+        // Store in localStorage for backup
+        localStorage.setItem('donationReceiptData', JSON.stringify(receiptData));
+
+        // Redirect to receipt page with query parameters
+        const params = new URLSearchParams({
+          paymentId: receiptData.paymentId,
+          title: receiptData.title,
+          amount: receiptData.amount,
+          date: receiptData.date,
+        });
+        
+        router.push(`/donation-receipt?${params.toString()}`);
+
         toast({
           title: "Payment Successful!",
           description: `Thank you for your donation. Payment ID: ${response.razorpay_payment_id}`,
@@ -391,7 +427,13 @@ export default function DonatePage() {
     <div className="py-20 bg-background">
       <div className="container mx-auto px-4">
         {/* Header */}
+
+        {/* Lifetime Monthly Recurring Donations Carousel */}
+        {/* <div className="max-w-7xl mx-auto mt-24 mb-24">
+          <RecurringDonationCarousel />
+        </div> */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
+          
           <span className="text-accent font-bold uppercase tracking-widest text-sm">
             Support Our Mission
           </span>
@@ -404,8 +446,9 @@ export default function DonatePage() {
           </p>
         </div>
 
+
         {/* Seva Carousel */}
-        {/* <div className="px-12 mb-32">
+        <div className="px-12 mb-32">
           <Carousel
             opts={{
               align: 'start',
@@ -451,10 +494,11 @@ export default function DonatePage() {
             <CarouselPrevious />
             <CarouselNext />
           </Carousel>
-        </div> */}
+        </div>
+
 
         {/* Custom Donation Section */}
-        {/* <div className="max-w-md mx-auto mb-16">
+        <div className="max-w-md mx-auto mb-16">
           <Card className="bg-card border-border shadow-sm">
             <CardHeader className="text-center">
               <CardTitle className="text-xl font-headline font-bold">Custom Donation</CardTitle>
@@ -481,7 +525,7 @@ export default function DonatePage() {
               </Button>
             </CardContent>
           </Card>
-        </div> */}
+        </div>
 
         {/* Payment Methods Section */}
         <div className="max-w-6xl mx-auto">
@@ -753,6 +797,7 @@ export default function DonatePage() {
             </div>
           </DialogContent>
         </Dialog>
+
       </div>
     </div>
   );
