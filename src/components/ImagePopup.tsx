@@ -20,6 +20,7 @@ interface ImagePopupProps {
 
 export function ImagePopup({ imageUrl, altText, title, description }: ImagePopupProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
     // Show popup after a short delay for a better user experience
@@ -29,11 +30,25 @@ export function ImagePopup({ imageUrl, altText, title, description }: ImagePopup
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    if (!imageUrl) {
+      setImageSize(null);
+      return;
+    }
+
+    const img = new window.Image();
+    img.src = imageUrl;
+    img.onload = () => {
+      setImageSize({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => setImageSize(null);
+  }, [imageUrl]);
+
   if (!imageUrl) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent className="sm:max-w-[1200px] p-0 overflow-hidden border-none bg-transparent shadow-none">
+      <DialogContent className="w-full max-w-[min(100vw-2rem,1200px)] max-h-[calc(100vh-2rem)] p-0 overflow-hidden border-none bg-transparent shadow-none">
         {/* Accessibility Requirements: DialogTitle and DialogDescription are required for screen readers */}
         <DialogTitle className="sr-only">{title || "Announcement"}</DialogTitle>
         <DialogDescription className="sr-only">
@@ -49,16 +64,19 @@ export function ImagePopup({ imageUrl, altText, title, description }: ImagePopup
           >
             <X className="h-5 w-5" />
           </Button>
-          
-          <div className="relative aspect-[16/9] w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20">
+
+          <div
+            className="relative w-full max-h-[calc(100vh-6rem)] rounded-3xl overflow-hidden shadow-2xl border-4 border-white/20 bg-black"
+            style={imageSize ? { aspectRatio: `${imageSize.width}/${imageSize.height}` } : { aspectRatio: '16/9' }}
+          >
             <Image
               src={imageUrl}
               alt={altText}
               fill
-              className="object-cover"
+              className="object-contain"
               priority
             />
-            
+
             {/* Optional Overlay Content */}
             {(title || description) && (
               <div className="absolute bottom-0 left-0 right-0 p-8 bg-gradient-to-t from-black/90 via-black/40 to-transparent text-white">
