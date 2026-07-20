@@ -114,7 +114,7 @@ export default function ContactPage() {
                   <Home className="w-5 h-5" />
                 </div>
                 <h3 className="font-headline font-bold text-xl">Guest House</h3>
-                <p className="text-muted-foreground text-sm font-medium">+91-75180-22202</p>
+                <p className="text-muted-foreground text-sm font-medium">+91-63931-90534</p>
               </div>
 
               <div className="space-y-4 p-6 bg-card border border-border rounded-2xl md:col-span-2">

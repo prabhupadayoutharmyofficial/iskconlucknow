@@ -11,10 +11,10 @@ export default function Home() {
 
   return (
     <div className="flex flex-col gap-0">
-        <ImagePopup
+        {/* <ImagePopup
           imageUrl="https://res.cloudinary.com/dguhsmyrh/image/upload/v1783330982/jaggnath_yatara.jpg_fvtmjt.jpg"
           altText="Temple Announcement"
-        />
+        /> */}
 
       {/* Hero Section */}
       <section className="relative h-[90vh] flex items-end justify-center overflow-hidden bg-background">

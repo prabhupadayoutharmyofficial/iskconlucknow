@@ -36,7 +36,6 @@ import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import RecurringDonationCarousel from '@/components/RecurringDonationCarousel';
 
 declare global {
   interface Window {
@@ -54,12 +53,53 @@ export default function DonatePage() {
   const [isAnyAmountModalOpen, setIsAnyAmountModalOpen] = useState(false);
   const [selectedSevaType, setSelectedSevaType] = useState('');
   const [anyAmountValue, setAnyAmountValue] = useState('');
+  const [recurringAmount, setRecurringAmount] = useState('');
+  const [recurringDuration, setRecurringDuration] = useState('monthly');
+  const [recurringTotalCount, setRecurringTotalCount] = useState('12');
+  const [recurringStartDate, setRecurringStartDate] = useState('');
+  const [recurringImmediate, setRecurringImmediate] = useState(true);
+  const [recurringEmail, setRecurringEmail] = useState('');
+  const [recurringMobile, setRecurringMobile] = useState('');
+  const [plans, setPlans] = useState<any[]>([]);
+  const [selectedPlanId, setSelectedPlanId] = useState('');
+  const [isPlansLoading, setIsPlansLoading] = useState(false);
+
+  const selectedPlan = plans.find((plan) => plan.id === selectedPlanId);
+
+  const formatBillingCycle = (plan: any) => {
+    if (!plan) return recurringDuration;
+
+    const period = String(plan.period || 'monthly');
+    const interval = Number(plan.interval || 1);
+
+    if (interval === 1) {
+      return period.charAt(0).toUpperCase() + period.slice(1);
+    }
+
+    const unit = period === 'monthly' ? 'Months' : period === 'yearly' ? 'Years' : period === 'weekly' ? 'Weeks' : `${period}s`;
+    return `${interval} ${unit}`;
+  };
 
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.onload = () => setRazorpayLoaded(true);
     document.body.appendChild(script);
+
+    async function loadPlans() {
+      setIsPlansLoading(true);
+      try {
+        const response = await fetch('/api/plans');
+        const data = await response.json();
+        setPlans(data.plans?.items || []);
+      } catch (error) {
+        console.error('Unable to fetch plans:', error);
+      } finally {
+        setIsPlansLoading(false);
+      }
+    }
+
+    loadPlans();
   }, []);
 
   const handleDonate = (amount: string, title: string) => {
@@ -217,6 +257,137 @@ export default function DonatePage() {
 
     setIsAnyAmountModalOpen(false);
     handleDonate(anyAmountValue, selectedSevaType);
+  };
+
+  const resetRecurringForm = () => {
+    setSelectedPlanId('');
+    setRecurringAmount('');
+    setRecurringDuration('monthly');
+    setRecurringTotalCount('12');
+    setRecurringStartDate('');
+    setRecurringImmediate(true);
+    setRecurringEmail('');
+    setRecurringMobile('');
+  };
+
+  const handleRecurringDonation = async () => {
+    const amount = Number(recurringAmount);
+
+    if (!razorpayLoaded) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Razorpay is not loaded yet. Please wait a moment.',
+      });
+      return;
+    }
+
+    if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Razorpay key is not configured.',
+      });
+      return;
+    }
+
+    if (!selectedPlanId && (!recurringAmount || isNaN(amount) || amount <= 0)) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Amount',
+        description: 'Please enter a valid recurring donation amount or choose a plan.',
+      });
+      return;
+    }
+
+    try {
+      const requestBody: Record<string, unknown> = {
+        notes: {
+          donation_type: selectedPlan ? formatBillingCycle(selectedPlan) : recurringDuration,
+        },
+      };
+
+      if (selectedPlanId) {
+        requestBody.plan_id = selectedPlanId;
+      } else {
+        requestBody.amount = amount;
+        requestBody.duration = recurringDuration;
+      }
+
+      if (recurringTotalCount) {
+        requestBody.total_count = Number(recurringTotalCount);
+      }
+
+      if (recurringStartDate && !recurringImmediate) {
+        requestBody.start_at = Math.floor(new Date(recurringStartDate).getTime() / 1000);
+      }
+
+      if (recurringEmail) {
+        requestBody.email = recurringEmail;
+      }
+
+      if (recurringMobile) {
+        requestBody.mobile = recurringMobile;
+      }
+
+      const response = await fetch('/api/subscriptions/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to create recurring subscription.');
+      }
+
+      const subscriptionId = data.subscription?.id;
+      if (!subscriptionId) {
+        throw new Error('Razorpay subscription ID is missing.');
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        subscription_id: subscriptionId,
+        name: 'ISKCON Lucknow',
+        description: `Recurring donation (${selectedPlan ? formatBillingCycle(selectedPlan) : recurringDuration})`,
+        image: 'https://res.cloudinary.com/dguhsmyrh/image/upload/v1772872478/iskcon_lucknow_rdmlcf.png',
+        notes: {
+          donation_type: selectedPlan ? formatBillingCycle(selectedPlan) : recurringDuration,
+          recurring_donation: 'true',
+        },
+        modal: {
+          ondismiss: function () {
+            toast({
+              title: 'Donation Cancelled',
+              description: 'You cancelled the recurring donation setup.',
+            });
+          },
+        },
+        handler: function (response: any) {
+          toast({
+            title: 'Recurring Donation Started',
+            description: `Your ${selectedPlan ? formatBillingCycle(selectedPlan) : recurringDuration} donation has been initiated successfully.`,
+          });
+          resetRecurringForm();
+        },
+        theme: {
+          color: '#FF6B35',
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (error: any) {
+      console.error('Razorpay recurring error:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Payment Failed',
+        description: error?.message || 'Failed to open Razorpay. Please try again.',
+      });
+    }
   };
 
   async function handleReceiptSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -428,9 +599,131 @@ export default function DonatePage() {
       <div className="container mx-auto px-4">
         {/* Header */}
 
-        {/* Lifetime Monthly Recurring Donations Carousel */}
-        {/* <div className="max-w-7xl mx-auto mt-24 mb-24">
-          <RecurringDonationCarousel />
+{/* Recurring payment*/}
+        {/* <div className="max-w-3xl mx-auto mb-24">
+          <Card className="border-border bg-card shadow-sm">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-headline font-bold">Plan Details</CardTitle>
+              <p className="text-sm text-muted-foreground">Fill in the plan and customer details below.</p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="recurring-plan">Select Plan</Label>
+                  <select
+                    id="recurring-plan"
+                    value={selectedPlanId}
+                    onChange={(e) => setSelectedPlanId(e.target.value)}
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="">Select a plan</option>
+                    {plans.map((plan) => (
+                      <option key={plan.id} value={plan.id}>
+                        {plan.item?.name || plan.id}
+                      </option>
+                    ))}
+                  </select>
+                  {isPlansLoading ? (
+                    <p className="text-sm text-muted-foreground">Loading plans…</p>
+                  ) : selectedPlan ? (
+                    <p className="text-sm text-muted-foreground">Selected plan: {selectedPlan.item?.name || selectedPlan.id}</p>
+                  ) : null}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="recurring-total-count">Total Count</Label>
+                  <Input
+                    id="recurring-total-count"
+                    type="number"
+                    min="1"
+                    placeholder="No. of billing cycles"
+                    value={recurringTotalCount}
+                    onChange={(e) => setRecurringTotalCount(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="recurring-duration">Billing Cycle</Label>
+                  <select
+                    id="recurring-duration"
+                    value={recurringDuration}
+                    onChange={(e) => setRecurringDuration(e.target.value)}
+                    disabled={Boolean(selectedPlanId)}
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="monthly">Monthly</option>
+                    <option value="quarterly">Quarterly</option>
+                    <option value="yearly">Yearly</option>
+                  </select>
+                  {selectedPlan ? (
+                    <p className="text-sm text-muted-foreground">Plan billing cycle: {formatBillingCycle(selectedPlan)}</p>
+                  ) : null}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="recurring-start-date">Start Date</Label>
+                  <Input
+                    id="recurring-start-date"
+                    type="date"
+                    value={recurringStartDate}
+                    onChange={(e) => setRecurringStartDate(e.target.value)}
+                    disabled={recurringImmediate}
+                  />
+                </div>
+                <div className="space-y-2 md:col-span-2">
+                  <div className="flex items-center gap-2 rounded-md border border-input bg-muted px-3 py-3">
+                    <Input
+                      id="recurring-immediate"
+                      type="checkbox"
+                      checked={recurringImmediate}
+                      onChange={(e) => setRecurringImmediate(e.target.checked)}
+                      className="h-4 w-4 rounded border-input text-primary focus:ring-offset-background"
+                    />
+                    <Label htmlFor="recurring-immediate" className="mb-0">
+                      Immediate start with first payment
+                    </Label>
+                  </div>
+                </div>
+              </div>
+              <div className="border-t border-border pt-5 space-y-4">
+                <p className="text-sm font-semibold">Customer Details</p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="recurring-email">Email</Label>
+                    <Input
+                      id="recurring-email"
+                      type="email"
+                      placeholder="Enter email"
+                      value={recurringEmail}
+                      onChange={(e) => setRecurringEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="recurring-mobile">Mobile Number</Label>
+                    <Input
+                      id="recurring-mobile"
+                      type="tel"
+                      placeholder="Enter mobile number"
+                      value={recurringMobile}
+                      onChange={(e) => setRecurringMobile(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <Button
+                  className="w-full bg-primary text-primary-foreground font-bold hover:bg-accent rounded-full"
+                  onClick={handleRecurringDonation}
+                >
+                  Start Recurring Donation
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full rounded-full"
+                  onClick={resetRecurringForm}
+                >
+                  Reset Form
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div> */}
         <div className="text-center max-w-3xl mx-auto mb-16 space-y-4">
           
