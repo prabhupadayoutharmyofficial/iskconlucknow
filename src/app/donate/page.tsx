@@ -599,7 +599,7 @@ export default function DonatePage() {
       <div className="container mx-auto px-4">
         {/* Header */}
 
-{/* Recurring payment*/}
+        {/* Recurring payment*/}
         {/* <div className="max-w-3xl mx-auto mb-24">
           <Card className="border-border bg-card shadow-sm">
             <CardHeader className="text-center">
